@@ -29,6 +29,7 @@ To generate the file for a day, run:
 
 ```sh
 mix generate 1 # For day 1. If run again, it will not create a new file
+mix compile
 ```
 
 This generates a file at `lib/advent_of_code/dayXX.ex` where `XX` is the
