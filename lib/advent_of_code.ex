@@ -20,7 +20,7 @@ defmodule AdventOfCode do
 
     template = """
     defmodule AdventOfCode.Day#{string_day} do
-      @doc ~S\"""
+      @doc \~S\"""
       ## Examples
 
           iex> AdventOfCode.Day#{string_day}.part1("hello")

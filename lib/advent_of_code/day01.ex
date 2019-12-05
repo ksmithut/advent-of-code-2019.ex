@@ -1,5 +1,5 @@
 defmodule AdventOfCode.Day01 do
-  @doc """
+  @doc ~S"""
   ## Examples
 
       iex> AdventOfCode.Day01.part1("12")
