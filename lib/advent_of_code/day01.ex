@@ -45,7 +45,7 @@ defmodule AdventOfCode.Day01 do
 
   defp fuel_required(mass) do
     Integer.floor_div(mass, 3)
-    |> (&(&1 - 2)).()
+    |> Kernel.-(2)
     |> (fn num -> Enum.max([num, 0]) end).()
   end
 
