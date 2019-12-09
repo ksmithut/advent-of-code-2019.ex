@@ -10,7 +10,10 @@ defmodule Mix.Tasks.Day do
   end
 
   def run([day, part | _rest]) do
-    AdventOfCode.run(String.to_integer(day), String.to_integer(part))
-    |> IO.inspect()
+    output = AdventOfCode.run(String.to_integer(day), String.to_integer(part))
+
+    if is_binary(output),
+      do: IO.puts(output),
+      else: IO.inspect(output)
   end
 end
