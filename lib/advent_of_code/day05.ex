@@ -49,8 +49,8 @@ defmodule AdventOfCode.Day05 do
     |> Enum.map(&String.to_integer/1)
   end
 
-  def run_program(state, pos, input \\ []) do
-    [mode3, mode2, mode1 | opcode_parts] =
+  defp run_program(state, pos, input) do
+    [_mode3, mode2, mode1 | opcode_parts] =
       Enum.at(state, pos)
       |> Integer.to_string()
       |> String.pad_leading(5, "0")
@@ -60,14 +60,12 @@ defmodule AdventOfCode.Day05 do
     a = param_value(pos + 1, mode1, state)
     aIm = param_value(pos + 1, "1", state)
     b = param_value(pos + 2, mode2, state)
-    _c = param_value(pos + 3, mode3, state)
     cIm = param_value(pos + 3, "1", state)
 
     cond do
       opcode == "99" ->
         List.first(input)
 
-      # output != nil -> {:error, :non_zero_output, output}
       opcode == "01" ->
         List.replace_at(state, cIm, a + b) |> run_program(pos + 4, input)
 
