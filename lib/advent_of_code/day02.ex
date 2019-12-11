@@ -1,4 +1,6 @@
 defmodule AdventOfCode.Day02 do
+  alias AdventOfCode.IntCode
+
   @doc ~S"""
   ## Examples
 
@@ -20,9 +22,9 @@ defmodule AdventOfCode.Day02 do
   """
 
   def part1(input, opts \\ [noun: 12, verb: 2]) do
-    parse(input)
-    |> List.replace_at(1, opts[:noun])
-    |> List.replace_at(2, opts[:verb])
+    IntCode.parse_program(input)
+    |> Map.put(1, opts[:noun])
+    |> Map.put(2, opts[:verb])
     |> run_program()
   end
 
@@ -34,35 +36,11 @@ defmodule AdventOfCode.Day02 do
     |> (fn {noun, verb} -> 100 * noun + verb end).()
   end
 
-  defp parse(input) do
-    String.trim(input)
-    |> String.split(",")
-    |> Enum.map(&String.to_integer/1)
-  end
+  defp run_program(program) do
+    pid = IntCode.run_program(program)
 
-  defp run_program(state, pos \\ 0) do
-    case Enum.at(state, pos) do
-      1 ->
-        a = Enum.at(state, pos + 1) |> (&Enum.at(state, &1)).()
-        b = Enum.at(state, pos + 2) |> (&Enum.at(state, &1)).()
-        c = Enum.at(state, pos + 3)
-
-        List.replace_at(state, c, a + b)
-        |> run_program(pos + 4)
-
-      2 ->
-        a = Enum.at(state, pos + 1) |> (&Enum.at(state, &1)).()
-        b = Enum.at(state, pos + 2) |> (&Enum.at(state, &1)).()
-        c = Enum.at(state, pos + 3)
-
-        List.replace_at(state, c, a * b)
-        |> run_program(pos + 4)
-
-      99 ->
-        List.first(state)
-
-      _ ->
-        []
+    receive do
+      {:end_program, ^pid, state} -> Map.get(state, 0)
     end
   end
 end

@@ -1,4 +1,6 @@
 defmodule AdventOfCode.Day07 do
+  alias AdventOfCode.IntCode
+
   @doc ~S"""
   ## Examples
 
@@ -11,9 +13,15 @@ defmodule AdventOfCode.Day07 do
       iex> AdventOfCode.Day07.part1("3,31,3,32,1002,32,10,32,1001,31,-2,31,1007,31,0,33,1002,33,7,33,1,33,31,31,1,32,31,31,4,31,99,0,0,0")
       65210
 
+      iex> AdventOfCode.Day07.part2("3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5")
+      139629729
+
+      iex> AdventOfCode.Day07.part2("3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10")
+      18216
+
   """
   def part1(input) do
-    program = parse(input)
+    program = IntCode.parse_program(input)
 
     possible_sequences(0..4)
     |> Enum.map(fn sequence -> run_phase_sequence(program, sequence) end)
@@ -21,14 +29,11 @@ defmodule AdventOfCode.Day07 do
   end
 
   def part2(input) do
-    # TODO
-    input
-  end
+    program = IntCode.parse_program(input)
 
-  defp parse(input) do
-    String.trim(input)
-    |> String.split(",")
-    |> Enum.map(&String.to_integer/1)
+    possible_sequences(5..9)
+    |> Enum.map(fn sequence -> loop_phase_sequence(program, sequence) end)
+    |> Enum.max()
   end
 
   defp possible_sequences(range) do
@@ -41,78 +46,53 @@ defmodule AdventOfCode.Day07 do
         do: [a, b, c, d, e]
   end
 
-  defp run_phase_sequence(program, sequence, input \\ 0) do
-    for phase_input <- sequence, reduce: input do
-      input -> run_program(program, 0, [input, phase_input])
+  defp run_phase_sequence(program, sequence) do
+    for phase_setting <- sequence, reduce: 0 do
+      input -> run_amp_to_completion(program, phase_setting, input)
     end
   end
 
-  defp run_program(state, pos, input) do
-    [_mode3, mode2, mode1 | opcode_parts] =
-      Enum.at(state, pos)
-      |> Integer.to_string()
-      |> String.pad_leading(5, "0")
-      |> String.graphemes()
+  defp loop_phase_sequence(program, [a, b, c, d, e]) do
+    pid_e = IntCode.run_program(program)
+    pid_d = IntCode.run_program(program, pid_e)
+    pid_c = IntCode.run_program(program, pid_d)
+    pid_b = IntCode.run_program(program, pid_c)
+    pid_a = IntCode.run_program(program, pid_b)
+    send(pid_a, {:message, self(), a})
+    send(pid_a, {:message, self(), 0})
+    send(pid_b, {:message, self(), b})
+    send(pid_c, {:message, self(), c})
+    send(pid_d, {:message, self(), d})
+    send(pid_e, {:message, self(), e})
+    loop_back(pid_e, pid_a)
+  end
 
-    opcode = Enum.join(opcode_parts)
-    a = param_value(pos + 1, mode1, state)
-    aIm = param_value(pos + 1, "1", state)
-    b = param_value(pos + 2, mode2, state)
-    cIm = param_value(pos + 3, "1", state)
+  defp loop_back(pid_end, pid_beginning, last_value \\ nil) do
+    receive do
+      {:message, ^pid_end, value} ->
+        send(pid_beginning, {:message, pid_end, value})
+        loop_back(pid_end, pid_beginning, value)
 
-    cond do
-      opcode == "99" ->
-        List.first(input)
-
-      # output != nil -> {:error, :non_zero_output, output}
-      opcode == "01" ->
-        List.replace_at(state, cIm, a + b) |> run_program(pos + 4, input)
-
-      opcode == "02" ->
-        List.replace_at(state, cIm, a * b) |> run_program(pos + 4, input)
-
-      opcode == "03" and length(input) == 0 ->
-        {:error, :no_input}
-
-      opcode == "03" ->
-        {value, input} = List.pop_at(input, length(input) - 1)
-        List.replace_at(state, aIm, value) |> run_program(pos + 2, input)
-
-      opcode == "04" ->
-        run_program(state, pos + 2, [a | input])
-
-      opcode == "05" and a != 0 ->
-        run_program(state, b, input)
-
-      opcode == "05" ->
-        run_program(state, pos + 3, input)
-
-      opcode == "06" and a == 0 ->
-        run_program(state, b, input)
-
-      opcode == "06" ->
-        run_program(state, pos + 3, input)
-
-      opcode == "07" and a < b ->
-        List.replace_at(state, cIm, 1) |> run_program(pos + 4, input)
-
-      opcode == "07" ->
-        List.replace_at(state, cIm, 0) |> run_program(pos + 4, input)
-
-      opcode == "08" and a == b ->
-        List.replace_at(state, cIm, 1) |> run_program(pos + 4, input)
-
-      opcode == "08" ->
-        List.replace_at(state, cIm, 0) |> run_program(pos + 4, input)
-
-      true ->
-        {:error, :unknown_command, opcode}
+      {:end_program, ^pid_end, _} ->
+        last_value
     end
   end
 
-  defp param_value(nil, _, _), do: nil
-  defp param_value(value, "1", state), do: Enum.at(state, value)
+  defp run_amp_to_completion(program, phase_setting, input) do
+    pid = IntCode.run_program(program)
+    send(pid, {:message, self(), phase_setting})
+    send(pid, {:message, self(), input})
+    run_loop(pid)
+  end
 
-  defp param_value(value, "0", state),
-    do: param_value(value, "1", state) |> param_value("1", state)
+  defp run_loop(pid, prev_output \\ nil) do
+    receive do
+      {:message, ^pid, value} ->
+        send(pid, {:message, self(), value})
+        run_loop(pid, value)
+
+      {:end_program, ^pid, _} ->
+        prev_output
+    end
+  end
 end
