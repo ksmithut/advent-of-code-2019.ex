@@ -85,13 +85,13 @@ defmodule AdventOfCode.Day11 do
       min_x..max_x
       |> Enum.map(fn x ->
         Map.get(map, {x, y}, 0)
-        |> (fn
-              0 -> " "
-              1 -> "#"
-            end).()
+        |> render_point()
       end)
       |> Enum.join()
     end)
     |> Enum.join("\n")
   end
+
+  defp render_point(0), do: " "
+  defp render_point(1), do: "#"
 end
