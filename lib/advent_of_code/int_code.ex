@@ -4,78 +4,84 @@ defmodule AdventOfCode.IntCode do
     |> String.split(",")
     |> Enum.map(&String.to_integer/1)
     |> Enum.with_index()
-    |> Enum.reduce(%{}, fn {value, pos}, map -> Map.put(map, pos, value) end)
+    |> Enum.reduce(%{relative_base: 0}, fn {value, pos}, map -> Map.put(map, pos, value) end)
   end
 
   def run_program(program, caller \\ self()) do
-    spawn(fn -> run(program, caller, 0) end)
+    spawn(fn -> run(program, caller) end)
   end
 
-  defp run(state, caller, pos) do
-    [_mode3, mode2, mode1 | opcode_parts] =
-      Map.get(state, pos)
+  defp run(state, caller, pointer \\ 0) do
+    [mode3, mode2, mode1 | opcode_parts] =
+      Map.get(state, pointer)
       |> Integer.to_string()
       |> String.pad_leading(5, "0")
       |> String.graphemes()
 
     opcode = Enum.join(opcode_parts)
-    a = param_value(pos + 1, mode1, state)
-    aIm = param_value(pos + 1, "1", state)
-    b = param_value(pos + 2, mode2, state)
-    cIm = param_value(pos + 3, "1", state)
+
+    input = fn
+      {value, "0"} -> Map.get(state, value, 0)
+      {value, "1"} -> value
+      {value, "2"} -> Map.get(state, :relative_base) |> (&Map.get(state, &1 + value, 0)).()
+    end
+
+    output = fn
+      {value, "0"} -> value
+      {value, "2"} -> Map.get(state, :relative_base) + value
+    end
+
+    a = {Map.get(state, pointer + 1, 0), mode1}
+    b = {Map.get(state, pointer + 2, 0), mode2}
+    c = {Map.get(state, pointer + 3, 0), mode3}
 
     cond do
-      opcode == "99" ->
-        send(caller, {:end_program, self(), state})
-
       opcode == "01" ->
-        Map.put(state, cIm, a + b) |> run(caller, pos + 4)
+        Map.put(state, output.(c), input.(a) + input.(b)) |> run(caller, pointer + 4)
 
       opcode == "02" ->
-        Map.put(state, cIm, a * b) |> run(caller, pos + 4)
+        Map.put(state, output.(c), input.(a) * input.(b)) |> run(caller, pointer + 4)
 
       opcode == "03" ->
         receive do
-          {:message, _, input} ->
-            Map.put(state, aIm, input) |> run(caller, pos + 2)
+          {:message, _, input} -> Map.put(state, output.(a), input) |> run(caller, pointer + 2)
         end
 
       opcode == "04" ->
-        send(caller, {:message, self(), a})
-        run(state, caller, pos + 2)
+        send(caller, {:message, self(), input.(a)})
+        run(state, caller, pointer + 2)
 
-      opcode == "05" and a != 0 ->
-        run(state, caller, b)
+      opcode == "05" and input.(a) != 0 ->
+        run(state, caller, input.(b))
 
       opcode == "05" ->
-        run(state, caller, pos + 3)
+        run(state, caller, pointer + 3)
 
-      opcode == "06" and a == 0 ->
-        run(state, caller, b)
+      opcode == "06" and input.(a) == 0 ->
+        run(state, caller, input.(b))
 
       opcode == "06" ->
-        run(state, caller, pos + 3)
+        run(state, caller, pointer + 3)
 
-      opcode == "07" and a < b ->
-        Map.put(state, cIm, 1) |> run(caller, pos + 4)
+      opcode == "07" and input.(a) < input.(b) ->
+        Map.put(state, output.(c), 1) |> run(caller, pointer + 4)
 
       opcode == "07" ->
-        Map.put(state, cIm, 0) |> run(caller, pos + 4)
+        Map.put(state, output.(c), 0) |> run(caller, pointer + 4)
 
-      opcode == "08" and a == b ->
-        Map.put(state, cIm, 1) |> run(caller, pos + 4)
+      opcode == "08" and input.(a) == input.(b) ->
+        Map.put(state, output.(c), 1) |> run(caller, pointer + 4)
 
       opcode == "08" ->
-        Map.put(state, cIm, 0) |> run(caller, pos + 4)
+        Map.put(state, output.(c), 0) |> run(caller, pointer + 4)
 
-      true ->
-        send(caller, {:error, self(), :unknown_command, opcode})
+      opcode == "09" ->
+        Map.get(state, :relative_base)
+        |> (&Map.put(state, :relative_base, &1 + input.(a))).()
+        |> run(caller, pointer + 2)
+
+      opcode == "99" ->
+        send(caller, {:end_program, self(), state})
     end
   end
-
-  defp param_value(nil, _, _), do: nil
-  defp param_value(value, "1", state), do: Map.get(state, value)
-
-  defp param_value(value, "0", state),
-    do: param_value(value, "1", state) |> param_value("1", state)
 end
