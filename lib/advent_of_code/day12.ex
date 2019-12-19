@@ -3,16 +3,22 @@ defmodule AdventOfCode.Day12 do
   @doc ~S"""
   ## Examples
 
-      # iex> AdventOfCode.Day12.part1("hello")
-      # "hello"
+      iex> AdventOfCode.Day12.part1("<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>", 10)
+      179
 
-      # iex> AdventOfCode.Day12.part2("hello")
-      # "hello"
+      iex> AdventOfCode.Day12.part1("<x=-8, y=-10, z=0>\n<x=5, y=5, z=10>\n<x=2, y=-7, z=3>\n<x=9, y=-8, z=-3>", 100)
+      1940
+
+      iex> AdventOfCode.Day12.part2("<x=-1, y=0, z=2>\n<x=2, y=-10, z=-7>\n<x=4, y=-8, z=8>\n<x=3, y=5, z=-1>")
+      2772
+
+      iex> AdventOfCode.Day12.part2("<x=-8, y=-10, z=0>\n<x=5, y=5, z=10>\n<x=2, y=-7, z=3>\n<x=9, y=-8, z=-3>")
+      4686774924
 
   """
-  def part1(input) do
+  def part1(input, steps \\ 1000) do
     parse(input)
-    |> simulate_times(1000)
+    |> simulate_times(steps)
     |> total_energy()
   end
 

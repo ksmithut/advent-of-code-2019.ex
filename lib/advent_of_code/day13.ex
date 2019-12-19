@@ -1,16 +1,6 @@
 defmodule AdventOfCode.Day13 do
   alias AdventOfCode.IntCode
 
-  @doc ~S"""
-  ## Examples
-
-      # iex> AdventOfCode.Day13.part1("hello")
-      # "hello"
-
-      # iex> AdventOfCode.Day13.part2("hello")
-      # "hello"
-
-  """
   def part1(input) do
     IntCode.parse_program(input)
     |> get_num_blocks()

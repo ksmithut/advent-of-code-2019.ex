@@ -11,4 +11,10 @@ defmodule AdventOfCodeTest do
   doctest AdventOfCode.Day08
   doctest AdventOfCode.Day09
   doctest AdventOfCode.Day10
+  doctest AdventOfCode.Day11
+  doctest AdventOfCode.Day12
+  doctest AdventOfCode.Day13
+  # doctest AdventOfCode.Day14
+  # doctest AdventOfCode.Day15
+  doctest AdventOfCode.Day16
 end

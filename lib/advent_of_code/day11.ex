@@ -1,16 +1,6 @@
 defmodule AdventOfCode.Day11 do
   alias AdventOfCode.IntCode
 
-  @doc ~S"""
-  ## Examples
-
-      # iex> AdventOfCode.Day11.part1("hello")
-      # "hello"
-
-      # iex> AdventOfCode.Day11.part2("hello")
-      # "hello"
-
-  """
   def part1(input) do
     IntCode.parse_program(input)
     |> start_painting_robot()
